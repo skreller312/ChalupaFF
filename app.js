@@ -1,0 +1,93 @@
+(() => {
+  const data = window.CHALUPA_MOCK_DATA;
+  const grid = document.getElementById("leagueGrid");
+  const lastUpdated = document.getElementById("lastUpdated");
+  const statusText = document.getElementById("statusText");
+  const refreshButton = document.getElementById("refreshButton");
+  const dialog = document.getElementById("matchupsDialog");
+  const dialogName = document.getElementById("dialogLeagueName");
+  const dialogContent = document.getElementById("dialogContent");
+  const closeDialog = document.getElementById("closeDialog");
+  const expanded = new Set();
+
+  const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  const pts = v => Number(v || 0).toFixed(2);
+  const ordinal = n => n + (n % 100 >= 11 && n % 100 <= 13 ? "th" : ({1:"st",2:"nd",3:"rd"}[n % 10] || "th"));
+  const statusClass = s => ["OUT","DOUBTFUL","IR","PUP","SUSPENDED"].includes(s) ? "status-out" : s === "QUESTIONABLE" ? "status-questionable" : "";
+
+  function playerHtml(p, key, bench=false) {
+    const open = expanded.has(key);
+    return `
+      <button class="player ${statusClass(p.status)}" data-player="${esc(key)}" type="button" aria-expanded="${open}">
+        <span class="position">${bench ? "BN" : esc(p.pos)}</span>
+        <span><span class="player-name">${esc(p.name)}${p.status ? `<span class="player-status">${esc(p.status)}</span>` : ""}</span>
+        <span class="player-detail">${esc(p.nfl)} • ${esc(p.game)}</span></span>
+        <span class="player-score">${pts(p.score)}</span>
+        ${open ? `<span class="player-detail-panel"><span class="stats"><span>Actual: ${pts(p.score)}</span><span>Proj: ${pts(p.projection)}</span><span>${esc(p.stats || "Stats unavailable")}</span></span>${p.news ? `<span class="news">${esc(p.news)}</span>` : ""}</span>` : ""}
+      </button>`;
+  }
+
+  function playersHtml(leagueId, team, teamKey) {
+    const key = leagueId + ":" + teamKey;
+    if (!expanded.has(key)) return "";
+    const starters = team.players?.starters || [];
+    const bench = team.players?.bench || [];
+    const benchKey = key + ":bench";
+    const benchOpen = expanded.has(benchKey);
+    return `
+      <div class="players-panel">
+        <div class="player-section-title">STARTERS</div>
+        ${starters.length ? starters.map((p,i) => playerHtml(p,key+":s:"+i)).join("") : '<p class="muted">Player details will appear here from the live league data.</p>'}
+        ${bench.length ? `<div class="bench-section">
+          <button class="secondary-button" data-bench="${esc(benchKey)}" type="button">${benchOpen ? "Hide" : "Show"} Bench (${bench.length})</button>
+          ${benchOpen ? bench.map((p,i) => playerHtml(p,key+":b:"+i,true)).join("") : ""}
+        </div>` : ""}
+      </div>`;
+  }
+
+  function cardHtml(l) {
+    const my=l.matchup.myTeam, opp=l.matchup.opponent, key=l.id+":my";
+    const open=expanded.has(key), win=Number(my.winProbability || 0);
+    return `
+      <article class="league-card">
+        <div class="league-top"><div><h3 class="league-name">${esc(l.name)}</h3><p class="league-meta">${esc(l.platform)} • Week ${l.week || data.week}</p></div>
+        <div class="record"><strong>${esc(l.record)}</strong><span>${ordinal(l.rank)} place</span></div></div>
+        <div class="matchup">
+          <div class="team-row mine"><div><div class="team-name">${esc(my.name)}</div><div class="team-sub">You</div></div><div class="score">${pts(my.score)}</div></div>
+          <div class="team-row"><div><div class="team-name">${esc(opp.name)}</div><div class="team-sub">Opponent</div></div><div class="score">${pts(opp.score)}</div></div>
+          <div class="matchup-summary"><div class="projection-line"><span>Projected ${pts(my.projection)} – ${pts(opp.projection)}</span><strong>${win}% win chance</strong></div><div class="win-meter"><span class="win-marker" style="left:calc(${Math.max(0,Math.min(100,win))}% - 1.5px)"></span></div></div>
+          ${open ? playersHtml(l.id,my,"my") : ""}
+        </div>
+        <div class="card-actions"><button class="secondary-button" data-expand="${esc(key)}" type="button">${open ? "Hide Players" : "Show Players"}</button><button class="secondary-button" data-matchups="${esc(l.id)}" type="button">All Matchups →</button></div>
+      </article>`;
+  }
+
+  function render() {
+    grid.innerHTML = data.leagues.map(cardHtml).join("");
+    lastUpdated.textContent = new Intl.DateTimeFormat(undefined,{hour:"numeric",minute:"2-digit",second:"2-digit"}).format(new Date(data.updatedAt));
+  }
+
+  function dialogHtml(l) {
+    dialogName.textContent=l.name;
+    if (!l.matchups?.length) { dialogContent.innerHTML='<div class="dialog-matchups"><p class="muted">Full matchup data will populate when this league is connected to its live API.</p></div>'; return; }
+    dialogContent.innerHTML='<div class="dialog-matchups">'+l.matchups.map((m,mi)=>{
+      const mk=l.id+":all:"+m.id, open=expanded.has(mk);
+      return `<section class="dialog-matchup">${m.teams.map(t=>`<div class="team-row"><div><div class="team-name">${esc(t.name)}</div><div class="team-sub">Projected ${pts(t.projection)}</div></div><div class="score">${pts(t.score)}</div></div>`).join("")}
+      <div class="card-actions"><button class="secondary-button" data-dialog-expand="${esc(mk)}" type="button">${open?"Hide Players":"Show Players"}</button></div>
+      ${open ? m.teams.map((t,ti)=>playersHtml(l.id,t,"all-"+mi+"-"+ti)).join("") : ""}</section>`;
+    }).join("")+'</div>';
+  }
+
+  grid.addEventListener("click", e => {
+    const a=e.target.closest("[data-expand]"); if(a){expanded.has(a.dataset.expand)?expanded.delete(a.dataset.expand):expanded.add(a.dataset.expand);render();return;}
+    const b=e.target.closest("[data-bench]"); if(b){expanded.has(b.dataset.bench)?expanded.delete(b.dataset.bench):expanded.add(b.dataset.bench);render();return;}
+    const p=e.target.closest("[data-player]"); if(p){expanded.has(p.dataset.player)?expanded.delete(p.dataset.player):expanded.add(p.dataset.player);render();return;}
+    const m=e.target.closest("[data-matchups]"); if(m){const l=data.leagues.find(x=>x.id===m.dataset.matchups);if(l){dialogHtml(l);dialog.showModal?.();}}
+  });
+
+  dialogContent.addEventListener("click",e=>{const b=e.target.closest("[data-dialog-expand]");if(!b)return;expanded.has(b.dataset.dialogExpand)?expanded.delete(b.dataset.dialogExpand):expanded.add(b.dataset.dialogExpand);dialogHtml(data.leagues.find(l=>b.dataset.dialogExpand.startsWith(l.id)));});
+  closeDialog.addEventListener("click",()=>dialog.close());
+  refreshButton.addEventListener("click",()=>{refreshButton.disabled=true;refreshButton.innerHTML="↻ Refreshing…";setTimeout(()=>{data.updatedAt=new Date().toISOString();statusText.textContent="Demo data • 8 leagues";render();refreshButton.disabled=false;refreshButton.innerHTML="↻ Refresh";},350);});
+  setInterval(()=>{data.updatedAt=new Date().toISOString();render();},300000);
+  render();
+})();
