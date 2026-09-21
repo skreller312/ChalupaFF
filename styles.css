@@ -63,6 +63,7 @@ h2 { margin-bottom: 2px; font-size: 1.2rem; letter-spacing: -.02em; }
 .player-section-title { margin: 2px 0 7px; color: var(--muted); font-size: .67rem; font-weight: 800; letter-spacing: .1em; }
 .player { width: 100%; padding: 9px 0; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 9px; align-items: center; border: 0; border-top: 1px solid rgba(38, 50, 71, .65); background: transparent; color: var(--text); text-align: left; cursor: pointer; }
 .player:first-of-type { border-top: 0; }
+.player-placeholder { visibility: hidden; pointer-events: none; }
 .position { width: 29px; color: var(--muted); font-size: .67rem; font-weight: 800; }
 .player-name { min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
 .player-detail { display: block; margin-top: 1px; color: var(--muted); font-size: .67rem; font-weight: 500; }
