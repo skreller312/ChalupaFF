@@ -32,9 +32,30 @@ function formatStats(s) {
   const a=map.filter(([k])=>s[k]!=null&&Number(s[k])!==0).map(([k,l])=>`${s[k]} ${l}`);
   return a.length?a.join(" • "):"Stat line available";
 }
+function normalizeSleeperMap(raw) {
+  if (!raw) return {};
+  if (!Array.isArray(raw)) return raw;
+  return Object.fromEntries(raw.map(x => [
+    String(x?.player_id ?? x?.playerId ?? x?.id ?? ""),
+    x?.stats && typeof x.stats === "object" ? {...x.stats, ...x} : x
+  ]).filter(([k]) => k));
+}
 function sleeperPlayer(id, players, stats, projections, scoring) {
   const p=players[id]||{}, s=stats?.[id]||{}, pr=projections?.[id]||{};
-  return {id,pos:p.position||p.fantasy_positions?.[0]||"—",name:p.full_name||[p.first_name,p.last_name].filter(Boolean).join(" ")||id,nfl:p.team||"FA",game:p.team||"Free agent",score:scoreStats(s,scoring)??num(s.pts_ppr??s.pts_half_ppr??s.pts_std),projection:scoreStats(pr,scoring)??num(pr.pts_ppr??pr.pts_half_ppr??pr.pts_std),status:sleeperStatus(p),stats:formatStats(s),news:""};
+  const sStats=s?.stats && typeof s.stats === "object" ? s.stats : s;
+  const pStats=pr?.stats && typeof pr.stats === "object" ? pr.stats : pr;
+  return {
+    id,
+    pos:p.position||p.fantasy_positions?.[0]||"—",
+    name:p.full_name||[p.first_name,p.last_name].filter(Boolean).join(" ")||id,
+    nfl:p.team||"FA",
+    game:p.team||"Free agent",
+    score:scoreStats(sStats,scoring)??num(s.pts_ppr??s.pts_half_ppr??s.pts_std),
+    projection:scoreStats(pStats,scoring)??num(pr.pts_ppr??pr.pts_half_ppr??pr.pts_std),
+    status:sleeperStatus(p),
+    stats:formatStats(sStats),
+    news:""
+  };
 }
 function estimatedWin(a,b) { return Math.round(50+50*Math.tanh((a-b)/24)); }
 
@@ -46,6 +67,8 @@ async function fetchSleeper(id,week,players) {
     optional(`${SLEEPER}/projections/nfl/regular/${CONFIG.season}/${week}`),
     getJson(`${SLEEPER}/user/${encodeURIComponent(CONFIG.sleeperUsername)}`)
   ]);
+  const stats=normalizeSleeperMap(statsRaw);
+  const projections=normalizeSleeperMap(projectionsRaw);
   const canonicalUserId=sleeperMe?.user_id;
   const me=users.find(u=>String(u.user_id)===String(canonicalUserId))||users.find(u=>String(u.username||"").toLowerCase()===CONFIG.sleeperUsername.toLowerCase());
   const byRoster=new Map(rosters.map(r=>[String(r.roster_id),r]));
