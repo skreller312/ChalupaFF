@@ -45,6 +45,7 @@ jobs:
             curl -fsSL "https://api.sleeper.app/v1/players/nfl" -o .cache/sleeper-players.json
           fi
           node scripts/fetch-live-data.mjs
+          rm -rf .cache
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
