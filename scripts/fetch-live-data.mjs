@@ -205,7 +205,7 @@ async function fetchEspn(l){
   const win=scoreSide?.winPercent??scoreSide?.winProbability??scoreSide?.projectedWinPercent??scoreSide?.winPct;
   const record=mine?.record?.overall||{};
   const standingsRank=mine?.rankCalculated||mine?.playoffSeed||mine?.rank||0;
-  const matchupList=scoreSchedule.filter(g=>g.matchupPeriodId!=null).map((g,i)=>{
+  const matchupList=scoreSchedule.filter(g=>Number(g.matchupPeriodId)===period).map((g,i)=>{
     const h=teams.find(t=>Number(t.id)===Number(g.home?.teamId)), a=teams.find(t=>Number(t.id)===Number(g.away?.teamId));
     const bg=boxSchedule.find(x=>String(x.id??"")===String(g.id??""))||boxSchedule.find(x=>Number(x.home?.teamId)===Number(g.home?.teamId)&&Number(x.away?.teamId)===Number(g.away?.teamId));
     return {id:String(g.id??i),teams:[espnTeamFromBox(bg?.home||g.home,h,period),espnTeamFromBox(bg?.away||g.away,a,period)]};
