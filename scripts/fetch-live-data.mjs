@@ -144,12 +144,14 @@ async function fetchEspn(l){
   const boxMyScore=num(mySide?.totalPoints);
   const matchupMyScore=num(scoreSide?.totalPoints);
   const summedMyScore=Number((my.players.starters||[]).reduce((t,p)=>t+num(p.score),0).toFixed(2));
-  my.score=boxMyScore!==0?boxMyScore:(matchupMyScore!==0?matchupMyScore:summedMyScore);\n  if(!my.projection) my.projection=Number((my.players.starters||[]).reduce((t,p)=>t+num(p.projection),0).toFixed(2));
+  my.score=boxMyScore!==0?boxMyScore:(matchupMyScore!==0?matchupMyScore:summedMyScore);
+  if(!my.projection) my.projection=Number((my.players.starters||[]).reduce((t,p)=>t+num(p.projection),0).toFixed(2));
   const op=espnTeamFromBox(oppSide||{},oppMeta,period);
   const boxOppScore=num(oppSide?.totalPoints);
   const matchupOppScore=num(scoreOppSide?.totalPoints);
   const summedOppScore=Number((op.players.starters||[]).reduce((t,p)=>t+num(p.score),0).toFixed(2));
-  op.score=boxOppScore!==0?boxOppScore:(matchupOppScore!==0?matchupOppScore:summedOppScore);\n  if(!op.projection) op.projection=Number((op.players.starters||[]).reduce((t,p)=>t+num(p.projection),0).toFixed(2));
+  op.score=boxOppScore!==0?boxOppScore:(matchupOppScore!==0?matchupOppScore:summedOppScore);
+  if(!op.projection) op.projection=Number((op.players.starters||[]).reduce((t,p)=>t+num(p.projection),0).toFixed(2));
   const win=scoreSide?.winPercent;
   const record=mine?.record?.overall||{};
   const standingsRank=mine?.rankCalculated||mine?.playoffSeed||mine?.rank||0;
