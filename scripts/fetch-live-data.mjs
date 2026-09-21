@@ -160,14 +160,17 @@ function espnTeamFromBox(side,teamMeta,period){
 }
 function findEspnSide(game,teamId){if(!game)return null;if(Number(game.home?.teamId)===Number(teamId))return game.home;if(Number(game.away?.teamId)===Number(teamId))return game.away;return null}
 async function fetchEspn(l){
-  const statusData=await espnFetch(l,["mStatus"]);
-  const period=Number(statusData.status?.currentMatchupPeriod||statusData.status?.currentScoringPeriod||1);
-  const [scores,box,scoreboard,teamsData,settingsData]=await Promise.all([
-    espnFetch(l,["mMatchupScore"],{matchupPeriodId:period,scoringPeriodId:period}),
-    espnFetch(l,["mBoxscore","mLiveScoring"],{matchupPeriodId:period,scoringPeriodId:period}),
-    espnFetch(l,["mScoreboard"],{scoringPeriodId:period}),
+  const [statusData,currentBoard,teamsData,settingsData]=await Promise.all([
+    espnFetch(l,["mStatus"]),
+    espnFetch(l,["mScoreboard"]),
     espnFetch(l,["mTeam","mStandings"]),
     espnFetch(l,["mSettings"])
+  ]);
+  const period=Number(currentBoard.scoringPeriodId||statusData.status?.currentScoringPeriod||statusData.status?.currentMatchupPeriod||1);
+  const [scores,box,scoreboard]=await Promise.all([
+    espnFetch(l,["mMatchupScore"],{matchupPeriodId:period,scoringPeriodId:period}),
+    espnFetch(l,["mBoxscore","mLiveScoring"],{matchupPeriodId:period,scoringPeriodId:period}),
+    espnFetch(l,["mScoreboard"],{scoringPeriodId:period})
   ]);
   const teams=teamsData.teams||[];
   const scoreSchedule=scores.schedule||[];
@@ -199,7 +202,7 @@ async function fetchEspn(l){
   op.score=boxOppScore!==0?boxOppScore:(matchupOppScore!==0?matchupOppScore:summedOppScore);
   if(num(liveOppSide?.totalProjectedPointsLive)>0) op.projection=num(liveOppSide.totalProjectedPointsLive);
   else if(!op.projection) op.projection=Number((op.players.starters||[]).reduce((t,p)=>t+num(p.projection),0).toFixed(2));
-  const win=scoreSide?.winPercent;
+  const win=scoreSide?.winPercent??scoreSide?.winProbability??scoreSide?.projectedWinPercent??scoreSide?.winPct;
   const record=mine?.record?.overall||{};
   const standingsRank=mine?.rankCalculated||mine?.playoffSeed||mine?.rank||0;
   const matchupList=scoreSchedule.filter(g=>g.matchupPeriodId!=null).map((g,i)=>{
