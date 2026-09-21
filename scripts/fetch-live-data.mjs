@@ -118,14 +118,20 @@ function espnHeaders(){return process.env.ESPN_S2&&process.env.ESPN_SWID?{Cookie
 async function espnFetch(l,views,params={}){const u=new URL(`${ESPN}/${l.season}/segments/0/leagues/${l.id}`);for(const v of views)u.searchParams.append("view",v);for(const [k,v] of Object.entries(params))u.searchParams.set(k,String(v));return getJson(u.toString(),espnHeaders())}
 function espnPlayer(e,period){
   const p=e.playerPoolEntry?.player||e.player||{};
-  const s=(p.stats||[]).find(x=>Number(x.scoringPeriodId)===period&&x.statSourceId===0)||(p.stats||[]).find(x=>Number(x.scoringPeriodId)===period);
+  const stats=p.stats||[];
+  const s=stats.find(x=>Number(x.scoringPeriodId)===period&&Number(x.statSourceId)===0&&Number(x.statTypeId)===0)
+    ||stats.find(x=>Number(x.scoringPeriodId)===period&&Number(x.statSourceId)===0)
+    ||stats.find(x=>Number(x.scoringPeriodId)===period);
+  const projected=stats.find(x=>Number(x.scoringPeriodId)===period&&Number(x.statTypeId)===2)
+    ||stats.find(x=>Number(x.scoringPeriodId)===period&&Number(x.statTypeId)===1)
+    ||stats.find(x=>Number(x.scoringPeriodId)===period&&x.projectedTotal!=null);
   const st=String(p.injuryStatus||"").toUpperCase();
   const slot=String(e.lineupSlotId??"");
   const pos=({"0":"QB","2":"RB","4":"WR","6":"TE","16":"D/ST","17":"K","23":"FLEX"})[slot]||p.defaultPositionName||"—";
   return {
     id:p.id,pos,name:p.fullName||p.name||`Player ${p.id}`,nfl:p.proTeamId!=null?String(p.proTeamId):"",
     game:"",score:num(e.playerPoolEntry?.appliedStatTotal??e.appliedStatTotal??s?.appliedTotal),
-    projection:num(e.playerPoolEntry?.projectedTotal??p.projectedTotal),
+    projection:num(e.playerPoolEntry?.projectedTotal??projected?.appliedTotal??projected?.appliedStatTotal??p.projectedTotal),
     status:["OUT","DOUBTFUL","QUESTIONABLE","IR","PUP","SUSPENDED"].includes(st)?st:"",
     stats:formatStats(s),news:""
   };
@@ -149,7 +155,7 @@ async function fetchEspn(l){
   const [scores,box,teamsData]=await Promise.all([
     espnFetch(l,["mMatchupScore"],{matchupPeriodId:period,scoringPeriodId:period}),
     espnFetch(l,["mBoxscore","mLiveScoring"],{matchupPeriodId:period,scoringPeriodId:period}),
-    espnFetch(l,["mTeam","mStandings"])
+    espnFetch(l,["mTeam","mStandings","mSettings"])
   ]);
   const teams=teamsData.teams||[];
   const scoreSchedule=scores.schedule||[];
@@ -185,7 +191,7 @@ async function fetchEspn(l){
   });
   return {
     id:`espn-${l.id}`,platform:"ESPN",leagueId:l.id,teamId:l.teamId,seasonId:l.season,
-    name:teamsData.settings?.name||scores.settings?.name||`ESPN League ${l.id}`,week:period,
+    name:teamsData.settings?.name||scores.settings?.name||teamsData.settings?.leagueName||`ESPN League ${l.id}`,week:period,
     record:`${num(record.wins)}-${num(record.losses)}${num(record.ties)?`-${num(record.ties)}`:""}`,
     rank:Number(standingsRank),
     matchup:{myTeam:my,opponent:op,winProbability:win==null?null:Math.round(Number(win)<=1?Number(win)*100:Number(win))},
