@@ -39,11 +39,11 @@ function sleeperPlayer(id, players, stats, projections, scoring) {
 function estimatedWin(a,b) { return Math.round(50+50*Math.tanh((a-b)/24)); }
 
 async function fetchSleeper(id,week,players) {
-  const [league,rosters,users,matchups,stats,projections,sleeperMe]=await Promise.all([
+  const [league,rosters,users,matchups,statsRaw,projectionsRaw,sleeperMe]=await Promise.all([
     getJson(`${SLEEPER}/league/${id}`),getJson(`${SLEEPER}/league/${id}/rosters`),getJson(`${SLEEPER}/league/${id}/users`),
     getJson(`${SLEEPER}/league/${id}/matchups/${week}`),
     optional(`${SLEEPER}/stats/nfl/regular/${CONFIG.season}/${week}`),
-    optional(`https://api.sleeper.com/projections/nfl/regular/${CONFIG.season}/${week}`),
+    optional(`${SLEEPER}/projections/nfl/regular/${CONFIG.season}/${week}`),
     getJson(`${SLEEPER}/user/${encodeURIComponent(CONFIG.sleeperUsername)}`)
   ]);
   const canonicalUserId=sleeperMe?.user_id;
@@ -61,11 +61,12 @@ async function fetchSleeper(id,week,players) {
     const starters=new Set((m.starters||[]).map(String)), all=(m.players||[]).map(String);
     const startersP=all.filter(x=>starters.has(x)), benchP=all.filter(x=>!starters.has(x)&&x!=="0");
     const make=pid=>sleeperPlayer(pid,players,stats,projections,league.scoring_settings);
+    const starterPlayers=startersP.map(make);
     return {
       rosterId:m.roster_id, ownerId:r?.owner_id, name:name(r),
       score:num(m.points??m.custom_points),
-      projection:Number(startersP.reduce((t,pid)=>t+(projections?.[pid]?(scoreStats(projections[pid],league.scoring_settings)??num(projections[pid].pts_ppr??projections[pid].pts_half_ppr??projections[pid].pts_std)):0),0).toFixed(2)),
-      players:{starters:startersP.map(make),bench:benchP.map(make)}
+      projection:Number(starterPlayers.reduce((t,p)=>t+num(p.projection),0).toFixed(2)),
+      players:{starters:starterPlayers,bench:benchP.map(make)}
     };
   };
   const groups=new Map();
@@ -142,11 +143,13 @@ async function fetchEspn(l){
   const my=espnTeamFromBox(mySide||{},mine,period);
   const boxMyScore=num(mySide?.totalPoints);
   const matchupMyScore=num(scoreSide?.totalPoints);
-  my.score=boxMyScore>0?boxMyScore:matchupMyScore;
+  const summedMyScore=Number((my.players.starters||[]).reduce((t,p)=>t+num(p.score),0).toFixed(2));
+  my.score=boxMyScore!==0?boxMyScore:(matchupMyScore!==0?matchupMyScore:summedMyScore);\n  if(!my.projection) my.projection=Number((my.players.starters||[]).reduce((t,p)=>t+num(p.projection),0).toFixed(2));
   const op=espnTeamFromBox(oppSide||{},oppMeta,period);
   const boxOppScore=num(oppSide?.totalPoints);
   const matchupOppScore=num(scoreOppSide?.totalPoints);
-  op.score=boxOppScore>0?boxOppScore:matchupOppScore;
+  const summedOppScore=Number((op.players.starters||[]).reduce((t,p)=>t+num(p.score),0).toFixed(2));
+  op.score=boxOppScore!==0?boxOppScore:(matchupOppScore!==0?matchupOppScore:summedOppScore);\n  if(!op.projection) op.projection=Number((op.players.starters||[]).reduce((t,p)=>t+num(p.projection),0).toFixed(2));
   const win=scoreSide?.winPercent;
   const record=mine?.record?.overall||{};
   const standingsRank=mine?.rankCalculated||mine?.playoffSeed||mine?.rank||0;
