@@ -3,7 +3,7 @@ window.CHALUPA_MOCK_DATA = {
   updatedAt: "2026-09-21T15:35:00-05:00",
   leagues: [
     {
-      id: "espn-1", name: "Chalupa Champions", platform: "ESPN", record: "2-0", rank: 1,
+      id: "espn-1", leagueId: "875459", teamId: 12, seasonId: 2026, name: "Chalupa Champions", platform: "ESPN", record: "2-0", rank: 1,
       matchup: { myTeam:{name:"Chalupa Batman",score:128.42,projection:136.80,winProbability:68}, opponent:{name:"The Gridiron Goblins",score:117.36,projection:128.40,winProbability:32} },
       matchups: [
         { id:"e1-m1", teams:[
@@ -26,8 +26,8 @@ window.CHALUPA_MOCK_DATA = {
         { id:"e1-m3", teams:[{name:"Sunday Scaries",score:96.82,projection:112.6,players:{starters:[],bench:[]}},{name:"Red Zone Renegades",score:104.66,projection:119.4,players:{starters:[],bench:[]}}] }
       ]
     },
-    {id:"espn-2",name:"Sunday Funday",platform:"ESPN",record:"1-1",rank:5,matchup:{myTeam:{name:"Chalupa Batman",score:101.64,projection:119.20,winProbability:43},opponent:{name:"Fourth Down Syndrome",score:109.82,projection:121.50,winProbability:57}},matchups:[]},
-    {id:"espn-3",name:"Touchdown Abbey",platform:"ESPN",record:"2-0",rank:2,matchup:{myTeam:{name:"Chalupa Batman",score:143.08,projection:149.60,winProbability:76},opponent:{name:"The Bye Week",score:121.44,projection:124.10,winProbability:24}},matchups:[]},
+    {id:"espn-2",leagueId:"1841110834",teamId:1,seasonId:2026,name:"Sunday Funday",platform:"ESPN",record:"1-1",rank:5,matchup:{myTeam:{name:"Chalupa Batman",score:101.64,projection:119.20,winProbability:43},opponent:{name:"Fourth Down Syndrome",score:109.82,projection:121.50,winProbability:57}},matchups:[]},
+    {id:"espn-3",leagueId:"84938142",teamId:1,seasonId:2026,name:"Touchdown Abbey",platform:"ESPN",record:"2-0",rank:2,matchup:{myTeam:{name:"Chalupa Batman",score:143.08,projection:149.60,winProbability:76},opponent:{name:"The Bye Week",score:121.44,projection:124.10,winProbability:24}},matchups:[]},
     {id:"sleeper-1",name:"The Big Chalupa",platform:"Sleeper",record:"2-0",rank:1,matchup:{myTeam:{name:"Chalupa Batman",score:132.74,projection:141.20,winProbability:72},opponent:{name:"Waiver Wire Wizards",score:118.30,projection:127.90,winProbability:28}},matchups:[]},
     {id:"sleeper-2",name:"Sleeper Cell",platform:"Sleeper",record:"0-2",rank:9,matchup:{myTeam:{name:"Chalupa Batman",score:87.16,projection:104.30,winProbability:31},opponent:{name:"The Commissioner",score:96.84,projection:112.60,winProbability:69}},matchups:[]},
     {id:"sleeper-3",name:"No Punt Intended",platform:"Sleeper",record:"1-1",rank:6,matchup:{myTeam:{name:"Chalupa Batman",score:116.52,projection:126.40,winProbability:55},opponent:{name:"Blitz & Giggles",score:111.08,projection:119.30,winProbability:45}},matchups:[]},
