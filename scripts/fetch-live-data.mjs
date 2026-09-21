@@ -124,7 +124,7 @@ async function fetchSleeper(id,week,players) {
 
 function espnHeaders(){return process.env.ESPN_S2&&process.env.ESPN_SWID?{Cookie:`espn_s2=${process.env.ESPN_S2}; SWID=${process.env.ESPN_SWID}`}:{}}
 async function espnFetch(l,views,params={}){const u=new URL(`${ESPN}/${l.season}/segments/0/leagues/${l.id}`);for(const v of views)u.searchParams.append("view",v);for(const [k,v] of Object.entries(params))u.searchParams.set(k,String(v));return getJson(u.toString(),espnHeaders())}
-function espnPlayer(e,period){
+const ESPN_TEAM_ABBR={0:"FA",1:"ATL",2:"BUF",3:"CHI",4:"CIN",5:"CLE",6:"DAL",7:"DEN",8:"DET",9:"GB",10:"TEN",11:"IND",12:"KC",13:"LV",14:"LAR",15:"MIA",16:"MIN",17:"NE",18:"NO",19:"NYG",20:"NYJ",21:"PHI",22:"ARI",23:"PIT",24:"LAC",25:"SF",26:"SEA",27:"TB",28:"WAS",29:"CAR",30:"JAX",33:"BAL",34:"HOU"};\nfunction espnPlayer(e,period){
   const p=e.playerPoolEntry?.player||e.player||{};
   const stats=e.playerPoolEntry?.stats||p.stats||[];
   const s=stats.find(x=>Number(x.scoringPeriodId)===period&&Number(x.statSourceId)===0&&Number(x.statSplitTypeId)===1)
@@ -139,7 +139,7 @@ function espnPlayer(e,period){
   const slot=String(e.lineupSlotId??"");
   const pos=({"0":"QB","2":"RB","4":"WR","6":"TE","16":"D/ST","17":"K","23":"FLEX"})[slot]||p.defaultPositionName||"—";
   return {
-    id:p.id,pos,name:p.fullName||p.name||`Player ${p.id}`,nfl:p.proTeamId!=null?String(p.proTeamId):"",
+    id:p.id,pos,name:p.fullName||p.name||`Player ${p.id}`,nfl:p.proTeamId!=null?(ESPN_TEAM_ABBR[Number(p.proTeamId)]||String(p.proTeamId)):"FA",
     game:"",score:num(e.playerPoolEntry?.appliedStatTotal??e.appliedStatTotal??s?.appliedTotal),
     projection:num(e.playerPoolEntry?.projectedTotal??projected?.appliedTotal??projected?.appliedStatTotal??p.projectedTotal),
     status:["OUT","DOUBTFUL","QUESTIONABLE","IR","PUP","SUSPENDED"].includes(st)?st:"",
@@ -208,7 +208,7 @@ async function fetchEspn(l){
   const matchupList=scoreSchedule.filter(g=>Number(g.matchupPeriodId)===period).map((g,i)=>{
     const h=teams.find(t=>Number(t.id)===Number(g.home?.teamId)), a=teams.find(t=>Number(t.id)===Number(g.away?.teamId));
     const bg=boxSchedule.find(x=>String(x.id??"")===String(g.id??""))||boxSchedule.find(x=>Number(x.home?.teamId)===Number(g.home?.teamId)&&Number(x.away?.teamId)===Number(g.away?.teamId));
-    return {id:String(g.id??i),teams:[espnTeamFromBox(bg?.home||g.home,h,period),espnTeamFromBox(bg?.away||g.away,a,period)]};
+    const ht=espnTeamFromBox(bg?.home||g.home,h,period);\n    const at=espnTeamFromBox(bg?.away||g.away,a,period);\n    if(!ht.score) ht.score=num(g.home?.totalPoints);\n    if(!at.score) at.score=num(g.away?.totalPoints);\n    if(!ht.projection) ht.projection=num(g.home?.totalProjectedPointsLive);\n    if(!at.projection) at.projection=num(g.away?.totalProjectedPointsLive);\n    if(!ht.score) ht.score=Number((ht.players.starters||[]).reduce((t,p)=>t+num(p.score),0).toFixed(2));\n    if(!at.score) at.score=Number((at.players.starters||[]).reduce((t,p)=>t+num(p.score),0).toFixed(2));\n    if(!ht.projection) ht.projection=Number((ht.players.starters||[]).reduce((t,p)=>t+num(p.projection),0).toFixed(2));\n    if(!at.projection) at.projection=Number((at.players.starters||[]).reduce((t,p)=>t+num(p.projection),0).toFixed(2));\n    return {id:String(g.id??i),teams:[ht,at]};
   });
   return {
     id:`espn-${l.id}`,platform:"ESPN",leagueId:l.id,teamId:l.teamId,seasonId:l.season,
