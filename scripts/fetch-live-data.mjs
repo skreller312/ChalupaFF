@@ -209,7 +209,17 @@ async function fetchEspn(l){
   const matchupList=scoreSchedule.filter(g=>Number(g.matchupPeriodId)===period).map((g,i)=>{
     const h=teams.find(t=>Number(t.id)===Number(g.home?.teamId)), a=teams.find(t=>Number(t.id)===Number(g.away?.teamId));
     const bg=boxSchedule.find(x=>String(x.id??"")===String(g.id??""))||boxSchedule.find(x=>Number(x.home?.teamId)===Number(g.home?.teamId)&&Number(x.away?.teamId)===Number(g.away?.teamId));
-    const ht=espnTeamFromBox(bg?.home||g.home,h,period);\n    const at=espnTeamFromBox(bg?.away||g.away,a,period);\n    if(!ht.score) ht.score=num(g.home?.totalPoints);\n    if(!at.score) at.score=num(g.away?.totalPoints);\n    if(!ht.projection) ht.projection=num(g.home?.totalProjectedPointsLive);\n    if(!at.projection) at.projection=num(g.away?.totalProjectedPointsLive);\n    if(!ht.score) ht.score=Number((ht.players.starters||[]).reduce((t,p)=>t+num(p.score),0).toFixed(2));\n    if(!at.score) at.score=Number((at.players.starters||[]).reduce((t,p)=>t+num(p.score),0).toFixed(2));\n    if(!ht.projection) ht.projection=Number((ht.players.starters||[]).reduce((t,p)=>t+num(p.projection),0).toFixed(2));\n    if(!at.projection) at.projection=Number((at.players.starters||[]).reduce((t,p)=>t+num(p.projection),0).toFixed(2));\n    return {id:String(g.id??i),teams:[ht,at]};
+    const ht=espnTeamFromBox(bg?.home||g.home,h,period);
+    const at=espnTeamFromBox(bg?.away||g.away,a,period);
+    if(!ht.score) ht.score=num(g.home?.totalPoints);
+    if(!at.score) at.score=num(g.away?.totalPoints);
+    if(!ht.projection) ht.projection=num(g.home?.totalProjectedPointsLive);
+    if(!at.projection) at.projection=num(g.away?.totalProjectedPointsLive);
+    if(!ht.score) ht.score=Number((ht.players.starters||[]).reduce((t,p)=>t+num(p.score),0).toFixed(2));
+    if(!at.score) at.score=Number((at.players.starters||[]).reduce((t,p)=>t+num(p.score),0).toFixed(2));
+    if(!ht.projection) ht.projection=Number((ht.players.starters||[]).reduce((t,p)=>t+num(p.projection),0).toFixed(2));
+    if(!at.projection) at.projection=Number((at.players.starters||[]).reduce((t,p)=>t+num(p.projection),0).toFixed(2));
+    return {id:String(g.id??i),teams:[ht,at]};
   });
   return {
     id:`espn-${l.id}`,platform:"ESPN",leagueId:l.id,teamId:l.teamId,seasonId:l.season,
