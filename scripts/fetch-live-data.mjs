@@ -39,13 +39,15 @@ function sleeperPlayer(id, players, stats, projections, scoring) {
 function estimatedWin(a,b) { return Math.round(50+50*Math.tanh((a-b)/24)); }
 
 async function fetchSleeper(id,week,players) {
-  const [league,rosters,users,matchups,stats,projections]=await Promise.all([
+  const [league,rosters,users,matchups,stats,projections,sleeperMe]=await Promise.all([
     getJson(`${SLEEPER}/league/${id}`),getJson(`${SLEEPER}/league/${id}/rosters`),getJson(`${SLEEPER}/league/${id}/users`),
     getJson(`${SLEEPER}/league/${id}/matchups/${week}`),
     optional(`${SLEEPER}/stats/nfl/regular/${CONFIG.season}/${week}`),
-    optional(`https://api.sleeper.com/projections/nfl/regular/${CONFIG.season}/${week}`)
+    optional(`https://api.sleeper.com/projections/nfl/regular/${CONFIG.season}/${week}`),
+    getJson(`${SLEEPER}/user/${encodeURIComponent(CONFIG.sleeperUsername)}`)
   ]);
-  const me=users.find(u=>String(u.username||"").toLowerCase()===CONFIG.sleeperUsername.toLowerCase());
+  const canonicalUserId=sleeperMe?.user_id;
+  const me=users.find(u=>String(u.user_id)===String(canonicalUserId))||users.find(u=>String(u.username||"").toLowerCase()===CONFIG.sleeperUsername.toLowerCase());
   const byRoster=new Map(rosters.map(r=>[String(r.roster_id),r]));
   const byUser=new Map(users.map(u=>[String(u.user_id),u]));
   const userForRoster=r=>r?byUser.get(String(r.owner_id)):null;
@@ -137,8 +139,14 @@ async function fetchEspn(l){
   const oppSide=findEspnSide(boxGame,oppId);
   const scoreSide=findEspnSide(game,l.teamId);
   const scoreOppSide=findEspnSide(game,oppId);
-  const my=espnTeamFromBox(mySide||{},mine,period); my.score=num(scoreSide?.totalPoints??my.score);
-  const op=espnTeamFromBox(oppSide||{},oppMeta,period); op.score=num(scoreOppSide?.totalPoints??op.score);
+  const my=espnTeamFromBox(mySide||{},mine,period);
+  const boxMyScore=num(mySide?.totalPoints);
+  const matchupMyScore=num(scoreSide?.totalPoints);
+  my.score=boxMyScore>0?boxMyScore:matchupMyScore;
+  const op=espnTeamFromBox(oppSide||{},oppMeta,period);
+  const boxOppScore=num(oppSide?.totalPoints);
+  const matchupOppScore=num(scoreOppSide?.totalPoints);
+  op.score=boxOppScore>0?boxOppScore:matchupOppScore;
   const win=scoreSide?.winPercent;
   const record=mine?.record?.overall||{};
   const standingsRank=mine?.rankCalculated||mine?.playoffSeed||mine?.rank||0;
