@@ -40,18 +40,25 @@ function normalizeSleeperMap(raw) {
     x?.stats && typeof x.stats === "object" ? {...x.stats, ...x} : x
   ]).filter(([k]) => k));
 }
-function sleeperPlayer(id, players, stats, projections, scoring) {
+function sleeperPlayer(id, players, stats, projections, scoring, schedule, week) {
   const p=players[id]||{}, s=stats?.[id]||{}, pr=projections?.[id]||{};
   const sStats=s?.stats && typeof s.stats === "object" ? s.stats : s;
   const pStats=pr?.stats && typeof pr.stats === "object" ? pr.stats : pr;
+  const actual=scoreStats(sStats,scoring)??num(s.pts_ppr??s.pts_half_ppr??s.pts_std);
+  const originalProjection=scoreStats(pStats,scoring)??num(pr.pts_ppr??pr.pts_half_ppr??pr.pts_std);
+  const nflTeam=p.team||"";
+  const game=(Array.isArray(schedule)?schedule:[]).find(g=>Number(g.week)===Number(week)&&String(g.status||"")!=="canceled"&&(g.home===nflTeam||g.away===nflTeam));
+  let projection=originalProjection;
+  if(game?.status==="complete") projection=actual;
+  else if(game?.status==="in_game") projection=Math.max(actual,originalProjection);
   return {
     id,
     pos:p.position||p.fantasy_positions?.[0]||"—",
     name:p.full_name||[p.first_name,p.last_name].filter(Boolean).join(" ")||id,
     nfl:p.team||"FA",
     game:p.team||"Free agent",
-    score:scoreStats(sStats,scoring)??num(s.pts_ppr??s.pts_half_ppr??s.pts_std),
-    projection:scoreStats(pStats,scoring)??num(pr.pts_ppr??pr.pts_half_ppr??pr.pts_std),
+    score:actual,
+    projection:projection,
     status:sleeperStatus(p),
     stats:formatStats(sStats),
     news:""
@@ -60,12 +67,13 @@ function sleeperPlayer(id, players, stats, projections, scoring) {
 function estimatedWin(a,b) { return Math.round(50+50*Math.tanh((a-b)/24)); }
 
 async function fetchSleeper(id,week,players) {
-  const [league,rosters,users,matchups,statsRaw,projectionsRaw,sleeperMe]=await Promise.all([
+  const [league,rosters,users,matchups,statsRaw,projectionsRaw,sleeperMe,scheduleRaw]=await Promise.all([
     getJson(`${SLEEPER}/league/${id}`),getJson(`${SLEEPER}/league/${id}/rosters`),getJson(`${SLEEPER}/league/${id}/users`),
     getJson(`${SLEEPER}/league/${id}/matchups/${week}`),
     optional(`${SLEEPER}/stats/nfl/regular/${CONFIG.season}/${week}`),
     optional(`${SLEEPER}/projections/nfl/regular/${CONFIG.season}/${week}`),
-    getJson(`${SLEEPER}/user/${encodeURIComponent(CONFIG.sleeperUsername)}`)
+    getJson(`${SLEEPER}/user/${encodeURIComponent(CONFIG.sleeperUsername)}`),
+    optional(`https://api.sleeper.com/schedule/nfl/regular/${CONFIG.season}`)
   ]);
   const stats=normalizeSleeperMap(statsRaw);
   const projections=normalizeSleeperMap(projectionsRaw);
@@ -83,7 +91,7 @@ async function fetchSleeper(id,week,players) {
     const r=byRoster.get(String(m.roster_id));
     const starters=new Set((m.starters||[]).map(String)), all=(m.players||[]).map(String);
     const startersP=all.filter(x=>starters.has(x)), benchP=all.filter(x=>!starters.has(x)&&x!=="0");
-    const make=pid=>sleeperPlayer(pid,players,stats,projections,league.scoring_settings);
+    const make=pid=>sleeperPlayer(pid,players,stats,projections,league.scoring_settings,scheduleRaw,week);
     const starterPlayers=startersP.map(make);
     return {
       rosterId:m.roster_id, ownerId:r?.owner_id, name:name(r),
@@ -152,35 +160,43 @@ function findEspnSide(game,teamId){if(!game)return null;if(Number(game.home?.tea
 async function fetchEspn(l){
   const statusData=await espnFetch(l,["mStatus"]);
   const period=Number(statusData.status?.currentScoringPeriod||statusData.status?.currentMatchupPeriod||1);
-  const [scores,box,teamsData]=await Promise.all([
+  const [scores,box,scoreboard,teamsData,settingsData]=await Promise.all([
     espnFetch(l,["mMatchupScore"],{matchupPeriodId:period,scoringPeriodId:period}),
     espnFetch(l,["mBoxscore","mLiveScoring"],{matchupPeriodId:period,scoringPeriodId:period}),
-    espnFetch(l,["mTeam","mStandings","mSettings"])
+    espnFetch(l,["mScoreboard"],{scoringPeriodId:period}),
+    espnFetch(l,["mTeam","mStandings"]),
+    espnFetch(l,["mSettings"])
   ]);
   const teams=teamsData.teams||[];
   const scoreSchedule=scores.schedule||[];
   const boxSchedule=box.schedule||[];
+  const scoreboardSchedule=scoreboard.schedule||[];
   const mine=teams.find(t=>Number(t.id)===Number(l.teamId));
   const game=scoreSchedule.find(g=>Number(g.matchupPeriodId||g.matchupPeriod)===period&&(Number(g.home?.teamId)===Number(l.teamId)||Number(g.away?.teamId)===Number(l.teamId)))||scoreSchedule.find(g=>Number(g.home?.teamId)===Number(l.teamId)||Number(g.away?.teamId)===Number(l.teamId));
   const boxGame=boxSchedule.find(g=>String(g.id??"")===String(game?.id??""))||boxSchedule.find(g=>Number(g.home?.teamId)===Number(game?.home?.teamId)&&Number(g.away?.teamId)===Number(game?.away?.teamId));
+  const scoreboardGame=scoreboardSchedule.find(g=>String(g.id??"")===String(game?.id??""))||scoreboardSchedule.find(g=>Number(g.home?.teamId)===Number(game?.home?.teamId)&&Number(g.away?.teamId)===Number(game?.away?.teamId));
   const mySide=findEspnSide(boxGame,l.teamId);
   const oppId=Number(game?.home?.teamId)===Number(l.teamId)?game?.away?.teamId:game?.home?.teamId;
   const oppMeta=teams.find(t=>Number(t.id)===Number(oppId));
   const oppSide=findEspnSide(boxGame,oppId);
   const scoreSide=findEspnSide(game,l.teamId);
   const scoreOppSide=findEspnSide(game,oppId);
+  const liveMySide=findEspnSide(scoreboardGame,l.teamId);
+  const liveOppSide=findEspnSide(scoreboardGame,oppId);
   const my=espnTeamFromBox(mySide||{},mine,period);
   const boxMyScore=num(mySide?.totalPoints);
   const matchupMyScore=num(scoreSide?.totalPoints);
   const summedMyScore=Number((my.players.starters||[]).reduce((t,p)=>t+num(p.score),0).toFixed(2));
   my.score=boxMyScore!==0?boxMyScore:(matchupMyScore!==0?matchupMyScore:summedMyScore);
-  if(!my.projection) my.projection=Number((my.players.starters||[]).reduce((t,p)=>t+num(p.projection),0).toFixed(2));
+  if(num(liveMySide?.totalProjectedPointsLive)>0) my.projection=num(liveMySide.totalProjectedPointsLive);
+  else if(!my.projection) my.projection=Number((my.players.starters||[]).reduce((t,p)=>t+num(p.projection),0).toFixed(2));
   const op=espnTeamFromBox(oppSide||{},oppMeta,period);
   const boxOppScore=num(oppSide?.totalPoints);
   const matchupOppScore=num(scoreOppSide?.totalPoints);
   const summedOppScore=Number((op.players.starters||[]).reduce((t,p)=>t+num(p.score),0).toFixed(2));
   op.score=boxOppScore!==0?boxOppScore:(matchupOppScore!==0?matchupOppScore:summedOppScore);
-  if(!op.projection) op.projection=Number((op.players.starters||[]).reduce((t,p)=>t+num(p.projection),0).toFixed(2));
+  if(num(liveOppSide?.totalProjectedPointsLive)>0) op.projection=num(liveOppSide.totalProjectedPointsLive);
+  else if(!op.projection) op.projection=Number((op.players.starters||[]).reduce((t,p)=>t+num(p.projection),0).toFixed(2));
   const win=scoreSide?.winPercent;
   const record=mine?.record?.overall||{};
   const standingsRank=mine?.rankCalculated||mine?.playoffSeed||mine?.rank||0;
@@ -191,7 +207,7 @@ async function fetchEspn(l){
   });
   return {
     id:`espn-${l.id}`,platform:"ESPN",leagueId:l.id,teamId:l.teamId,seasonId:l.season,
-    name:teamsData.settings?.name||scores.settings?.name||teamsData.settings?.leagueName||`ESPN League ${l.id}`,week:period,
+    name:settingsData?.settings?.name||teamsData.settings?.name||scores.settings?.name||teamsData.settings?.leagueName||`ESPN League ${l.id}`,week:period,
     record:`${num(record.wins)}-${num(record.losses)}${num(record.ties)?`-${num(record.ties)}`:""}`,
     rank:Number(standingsRank),
     matchup:{myTeam:my,opponent:op,winProbability:win==null?null:Math.round(Number(win)<=1?Number(win)*100:Number(win))},
@@ -200,7 +216,7 @@ async function fetchEspn(l){
 }
 
 async function main(){
-  const now=new Date().toISOString(), state=await optional(`${SLEEPER}/state/nfl`), week=Number(state?.week||3);
+  const now=new Date().toISOString(), state=await optional(`${SLEEPER}/state/nfl`), week=Number(state?.display_week||state?.week||3);
   let players={};
   try { players=JSON.parse(await fs.readFile(".cache/sleeper-players.json","utf8")); } catch { players=await optional(`${SLEEPER}/players/nfl`)||{}; }
   const leagues=[],errors=[];
