@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1220">
+  <meta name="description" content="ChalupaFF fantasy football dashboard">
+  <title>ChalupaFF</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <div>
+        <p class="eyebrow">FANTASY FOOTBALL</p>
+        <h1>ChalupaFF</h1>
+      </div>
+      <button id="refreshButton" class="refresh-button" type="button" aria-label="Refresh fantasy data">
+        <span aria-hidden="true">↻</span>
+        Refresh
+      </button>
+    </div>
+  </header>
+  <main class="page-shell">
+    <section class="dashboard-intro" aria-labelledby="dashboardTitle">
+      <div>
+        <h2 id="dashboardTitle">Your Matchups</h2>
+        <p id="statusText" class="muted">Demo data • 8 leagues</p>
+      </div>
+      <div class="updated">
+        <span>Last updated</span>
+        <strong id="lastUpdated">—</strong>
+      </div>
+    </section>
+    <section id="leagueGrid" class="league-grid" aria-label="Fantasy league matchups"></section>
+    <section class="legend" aria-label="Player status legend">
+      <span><i class="status-dot status-red"></i> Out / Doubtful / IR / PUP / Suspended</span>
+      <span><i class="status-dot status-yellow"></i> Questionable</span>
+      <span><i class="bench-mark">BN</i> Bench</span>
+    </section>
+  </main>
+  <dialog id="matchupsDialog" class="matchups-dialog">
+    <div class="dialog-header">
+      <div>
+        <p class="eyebrow">LEAGUE MATCHUPS</p>
+        <h2 id="dialogLeagueName">League</h2>
+      </div>
+      <button id="closeDialog" class="icon-button" type="button" aria-label="Close">×</button>
+    </div>
+    <div id="dialogContent"></div>
+  </dialog>
+  <script src="data/mock-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
