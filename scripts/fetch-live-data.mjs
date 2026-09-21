@@ -46,23 +46,46 @@ async function fetchSleeper(id,week,players) {
     optional(`https://api.sleeper.com/projections/nfl/regular/${CONFIG.season}/${week}`)
   ]);
   const me=users.find(u=>String(u.username||"").toLowerCase()===CONFIG.sleeperUsername.toLowerCase());
-  const byRoster=new Map(rosters.map(r=>[String(r.roster_id),r])), byUser=new Map(users.map(u=>[String(u.user_id),u]));
+  const byRoster=new Map(rosters.map(r=>[String(r.roster_id),r]));
+  const byUser=new Map(users.map(u=>[String(u.user_id),u]));
+  const userForRoster=r=>r?byUser.get(String(r.owner_id)):null;
   const mine=rosters.find(r=>String(r.owner_id)===String(me?.user_id));
-  const name=r=>byUser.get(String(r?.owner_id))?.metadata?.team_name||byUser.get(String(r?.owner_id))?.display_name||"Roster "+(r?.roster_id??"?");
+  const name=r=>{
+    const u=userForRoster(r);
+    return u?.metadata?.team_name||u?.display_name||u?.username||`Team ${r?.roster_id??"?"}`;
+  };
   const team=m=>{
-    const r=byRoster.get(String(m.roster_id)), starters=new Set((m.starters||[]).map(String)), all=(m.players||[]).map(String);
+    const r=byRoster.get(String(m.roster_id));
+    const starters=new Set((m.starters||[]).map(String)), all=(m.players||[]).map(String);
     const startersP=all.filter(x=>starters.has(x)), benchP=all.filter(x=>!starters.has(x)&&x!=="0");
-    const make=id=>sleeperPlayer(id,players,stats,projections,league.scoring_settings);
-    return {name:name(r),score:num(m.points??m.custom_points),projection:Number(startersP.reduce((t,id)=>t+(projections?.[id]?(scoreStats(projections[id],league.scoring_settings)??num(projections[id].pts_ppr??projections[id].pts_half_ppr??projections[id].pts_std)):0),0).toFixed(2)),players:{starters:startersP.map(make),bench:benchP.map(make)}};
+    const make=pid=>sleeperPlayer(pid,players,stats,projections,league.scoring_settings);
+    return {
+      rosterId:m.roster_id, ownerId:r?.owner_id, name:name(r),
+      score:num(m.points??m.custom_points),
+      projection:Number(startersP.reduce((t,pid)=>t+(projections?.[pid]?(scoreStats(projections[pid],league.scoring_settings)??num(projections[pid].pts_ppr??projections[pid].pts_half_ppr??projections[pid].pts_std)):0),0).toFixed(2)),
+      players:{starters:startersP.map(make),bench:benchP.map(make)}
+    };
   };
   const groups=new Map();
-  for(const m of matchups){const k=String(m.matchup_id??`bye-${m.roster_id}`);if(!groups.has(k))groups.set(k,[]);groups.get(k).push(team(m));}
-  const allMatchups=[...groups.entries()].map(([id,teams])=>({id,teams}));
+  for(const m of matchups){const k=String(m.matchup_id??`bye-${m.roster_id}`);if(!groups.has(k))groups.set(k,[]);groups.get(k).push(m);}
+  const makeMatchup=(raw,id)=>({id,teams:raw.map(team)});
+  const allMatchups=[...groups.entries()].map(([mid,raw])=>makeMatchup(raw,mid));
   const mineM=mine?matchups.find(m=>String(m.roster_id)===String(mine.roster_id)):null;
   const mineT=mineM?team(mineM):null;
-  const opp=mineM&&mineM.matchup_id!=null?(groups.get(String(mineM.matchup_id))||[]).find(t=>t.name!==mineT?.name):null;
+  const oppRaw=mineM?.matchup_id!=null?(groups.get(String(mineM.matchup_id))||[]).find(m=>String(m.roster_id)!==String(mineM.roster_id)):null;
+  const opp=oppRaw?team(oppRaw):null;
   const rank=[...rosters].sort((a,b)=>num(b.settings?.wins)-num(a.settings?.wins)||num(a.settings?.losses)-num(b.settings?.losses)||num(b.settings?.fpts)-num(a.settings?.fpts)).findIndex(r=>String(r.roster_id)===String(mine?.roster_id))+1;
-  return {id:`sleeper-${id}`,platform:"Sleeper",leagueId:id,name:league.name,week,record:`${num(mine?.settings?.wins)}-${num(mine?.settings?.losses)}${num(mine?.settings?.ties)?`-${num(mine.settings.ties)}`:""}`,rank:rank||0,matchup:{myTeam:mineT||{name:"Team unavailable",score:0,projection:0,players:{starters:[],bench:[]}},opponent:opp||{name:"Opponent unavailable",score:0,projection:0,players:{starters:[],bench:[]}},winProbability:mineT&&opp?estimatedWin(mineT.projection,opp.projection):null},matchups:allMatchups,winProbabilityEstimated:true};
+  return {
+    id:`sleeper-${id}`,platform:"Sleeper",leagueId:id,name:league.name,week,
+    record:`${num(mine?.settings?.wins)}-${num(mine?.settings?.losses)}${num(mine?.settings?.ties)?`-${num(mine.settings.ties)}`:""}`,
+    rank:rank||0,
+    matchup:{
+      myTeam:mineT||{name:"Team unavailable",score:0,projection:0,players:{starters:[],bench:[]}},
+      opponent:opp||{name:"Opponent unavailable",score:0,projection:0,players:{starters:[],bench:[]}},
+      winProbability:mineT&&opp?estimatedWin(mineT.projection,opp.projection):null
+    },
+    matchups:allMatchups,winProbabilityEstimated:true
+  };
 }
 
 function espnHeaders(){return process.env.ESPN_S2&&process.env.ESPN_SWID?{Cookie:`espn_s2=${process.env.ESPN_S2}; SWID=${process.env.ESPN_SWID}`}:{}}
@@ -97,30 +120,36 @@ function findEspnSide(game,teamId){if(!game)return null;if(Number(game.home?.tea
 async function fetchEspn(l){
   const statusData=await espnFetch(l,["mStatus"]);
   const period=Number(statusData.status?.currentScoringPeriod||statusData.status?.currentMatchupPeriod||1);
-  const [live,teamsData]=await Promise.all([
-    espnFetch(l,["mBoxscore","mLiveScoring","mScoreboard"],{scoringPeriodId:period,matchupPeriodId:period}),
+  const [scores,box,teamsData]=await Promise.all([
+    espnFetch(l,["mMatchupScore"],{matchupPeriodId:period,scoringPeriodId:period}),
+    espnFetch(l,["mBoxscore","mLiveScoring"],{matchupPeriodId:period,scoringPeriodId:period}),
     espnFetch(l,["mTeam","mStandings"])
   ]);
   const teams=teamsData.teams||[];
+  const scoreSchedule=scores.schedule||[];
+  const boxSchedule=box.schedule||[];
   const mine=teams.find(t=>Number(t.id)===Number(l.teamId));
-  const schedule=live.schedule||[];
-  const game=schedule.find(g=>Number(g.matchupPeriodId||g.matchupPeriod)===period&&(Number(g.home?.teamId)===Number(l.teamId)||Number(g.away?.teamId)===Number(l.teamId)))||schedule.find(g=>Number(g.home?.teamId)===Number(l.teamId)||Number(g.away?.teamId)===Number(l.teamId));
-  const mySide=findEspnSide(game,l.teamId);
-  const oppId=mySide===game?.home?game?.away?.teamId:game?.home?.teamId;
+  const game=scoreSchedule.find(g=>Number(g.matchupPeriodId||g.matchupPeriod)===period&&(Number(g.home?.teamId)===Number(l.teamId)||Number(g.away?.teamId)===Number(l.teamId)))||scoreSchedule.find(g=>Number(g.home?.teamId)===Number(l.teamId)||Number(g.away?.teamId)===Number(l.teamId));
+  const boxGame=boxSchedule.find(g=>String(g.id??"")===String(game?.id??""))||boxSchedule.find(g=>Number(g.home?.teamId)===Number(game?.home?.teamId)&&Number(g.away?.teamId)===Number(game?.away?.teamId));
+  const mySide=findEspnSide(boxGame,l.teamId);
+  const oppId=Number(game?.home?.teamId)===Number(l.teamId)?game?.away?.teamId:game?.home?.teamId;
   const oppMeta=teams.find(t=>Number(t.id)===Number(oppId));
-  const oppSide=findEspnSide(game,oppId);
-  const my=espnTeamFromBox(mySide,mine,period);
-  const op=espnTeamFromBox(oppSide,oppMeta,period);
-  const win=mySide?.winPercent;
+  const oppSide=findEspnSide(boxGame,oppId);
+  const scoreSide=findEspnSide(game,l.teamId);
+  const scoreOppSide=findEspnSide(game,oppId);
+  const my=espnTeamFromBox(mySide||{},mine,period); my.score=num(scoreSide?.totalPoints??my.score);
+  const op=espnTeamFromBox(oppSide||{},oppMeta,period); op.score=num(scoreOppSide?.totalPoints??op.score);
+  const win=scoreSide?.winPercent;
   const record=mine?.record?.overall||{};
   const standingsRank=mine?.rankCalculated||mine?.playoffSeed||mine?.rank||0;
-  const matchupList=schedule.filter(g=>g.matchupPeriodId!=null).map((g,i)=>{
+  const matchupList=scoreSchedule.filter(g=>g.matchupPeriodId!=null).map((g,i)=>{
     const h=teams.find(t=>Number(t.id)===Number(g.home?.teamId)), a=teams.find(t=>Number(t.id)===Number(g.away?.teamId));
-    return {id:String(g.id??i),teams:[espnTeamFromBox(g.home,h,period),espnTeamFromBox(g.away,a,period)]};
+    const bg=boxSchedule.find(x=>String(x.id??"")===String(g.id??""))||boxSchedule.find(x=>Number(x.home?.teamId)===Number(g.home?.teamId)&&Number(x.away?.teamId)===Number(g.away?.teamId));
+    return {id:String(g.id??i),teams:[espnTeamFromBox(bg?.home||g.home,h,period),espnTeamFromBox(bg?.away||g.away,a,period)]};
   });
   return {
     id:`espn-${l.id}`,platform:"ESPN",leagueId:l.id,teamId:l.teamId,seasonId:l.season,
-    name:teamsData.settings?.name||live.settings?.name||`ESPN League ${l.id}`,week:period,
+    name:teamsData.settings?.name||scores.settings?.name||`ESPN League ${l.id}`,week:period,
     record:`${num(record.wins)}-${num(record.losses)}${num(record.ties)?`-${num(record.ties)}`:""}`,
     rank:Number(standingsRank),
     matchup:{myTeam:my,opponent:op,winProbability:win==null?null:Math.round(Number(win)<=1?Number(win)*100:Number(win))},
