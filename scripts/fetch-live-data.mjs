@@ -126,11 +126,13 @@ function espnHeaders(){return process.env.ESPN_S2&&process.env.ESPN_SWID?{Cookie
 async function espnFetch(l,views,params={}){const u=new URL(`${ESPN}/${l.season}/segments/0/leagues/${l.id}`);for(const v of views)u.searchParams.append("view",v);for(const [k,v] of Object.entries(params))u.searchParams.set(k,String(v));return getJson(u.toString(),espnHeaders())}
 function espnPlayer(e,period){
   const p=e.playerPoolEntry?.player||e.player||{};
-  const stats=p.stats||[];
-  const s=stats.find(x=>Number(x.scoringPeriodId)===period&&Number(x.statSourceId)===0&&Number(x.statTypeId)===0)
+  const stats=e.playerPoolEntry?.stats||p.stats||[];
+  const s=stats.find(x=>Number(x.scoringPeriodId)===period&&Number(x.statSourceId)===0&&Number(x.statSplitTypeId)===1)
     ||stats.find(x=>Number(x.scoringPeriodId)===period&&Number(x.statSourceId)===0)
     ||stats.find(x=>Number(x.scoringPeriodId)===period);
-  const projected=stats.find(x=>Number(x.scoringPeriodId)===period&&Number(x.statTypeId)===2)
+  const projected=stats.find(x=>Number(x.scoringPeriodId)===period&&Number(x.statSourceId)===1&&Number(x.statSplitTypeId)===1)
+    ||stats.find(x=>Number(x.scoringPeriodId)===period&&Number(x.statSourceId)===1)
+    ||stats.find(x=>Number(x.scoringPeriodId)===period&&Number(x.statTypeId)===2)
     ||stats.find(x=>Number(x.scoringPeriodId)===period&&Number(x.statTypeId)===1)
     ||stats.find(x=>Number(x.scoringPeriodId)===period&&x.projectedTotal!=null);
   const st=String(p.injuryStatus||"").toUpperCase();
