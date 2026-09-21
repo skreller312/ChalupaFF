@@ -161,7 +161,7 @@ function espnTeamFromBox(side,teamMeta,period){
 function findEspnSide(game,teamId){if(!game)return null;if(Number(game.home?.teamId)===Number(teamId))return game.home;if(Number(game.away?.teamId)===Number(teamId))return game.away;return null}
 async function fetchEspn(l){
   const statusData=await espnFetch(l,["mStatus"]);
-  const period=Number(statusData.status?.currentScoringPeriod||statusData.status?.currentMatchupPeriod||1);
+  const period=Number(statusData.status?.currentMatchupPeriod||statusData.status?.currentScoringPeriod||1);
   const [scores,box,scoreboard,teamsData,settingsData]=await Promise.all([
     espnFetch(l,["mMatchupScore"],{matchupPeriodId:period,scoringPeriodId:period}),
     espnFetch(l,["mBoxscore","mLiveScoring"],{matchupPeriodId:period,scoringPeriodId:period}),
@@ -218,7 +218,7 @@ async function fetchEspn(l){
 }
 
 async function main(){
-  const now=new Date().toISOString(), state=await optional(`${SLEEPER}/state/nfl`), week=Number(state?.display_week||state?.week||3);
+  const now=new Date().toISOString(), state=await optional(`${SLEEPER}/state/nfl`), week=Number(state?.week||3);
   let players={};
   try { players=JSON.parse(await fs.readFile(".cache/sleeper-players.json","utf8")); } catch { players=await optional(`${SLEEPER}/players/nfl`)||{}; }
   const leagues=[],errors=[];
