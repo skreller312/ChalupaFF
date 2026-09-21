@@ -25,19 +25,35 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+
+      - name: Restore Sleeper player metadata
+        id: player-cache
+        uses: actions/cache@v4
+        with:
+          path: .cache
+          key: sleeper-players-${{ github.run_id }}
+          restore-keys: sleeper-players-
+
       - name: Fetch live data
         env:
           ESPN_S2: ${{ secrets.ESPN_S2 }}
           ESPN_SWID: ${{ secrets.ESPN_SWID }}
         run: |
           node --version
+          mkdir -p .cache
+          if [ ! -f .cache/sleeper-players.json ]; then
+            curl -fsSL "https://api.sleeper.app/v1/players/nfl" -o .cache/sleeper-players.json
+          fi
           node scripts/fetch-live-data.mjs
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
+
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v4
         with:
           path: .
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
