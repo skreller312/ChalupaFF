@@ -4,7 +4,7 @@ on:
   push:
     branches: ["main"]
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "2-59/5 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -14,11 +14,12 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 4
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -42,9 +43,10 @@ jobs:
           node --version
           mkdir -p .cache
           if [ ! -f .cache/sleeper-players.json ]; then
-            curl -fsSL "https://api.sleeper.app/v1/players/nfl" -o .cache/sleeper-players.json
+            curl --fail --silent --show-error --location --max-time 30 "https://api.sleeper.app/v1/players/nfl" -o .cache/sleeper-players.json
           fi
           node scripts/fetch-live-data.mjs
+        timeout-minutes: 3
           rm -rf .cache
 
       - name: Configure Pages
