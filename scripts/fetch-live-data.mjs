@@ -5,7 +5,14 @@ const SLEEPER = "https://api.sleeper.app/v1";
 const ESPN = "https://lm-api-reads.fantasy.espn.com/apis/v3/games/ffl/seasons";
 
 async function getJson(url, headers = {}) {
-  const res = await fetch(url, {headers:{Accept:"application/json","User-Agent":"ChalupaFF/1.0",...headers}});
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
+  let res;
+  try {
+    res = await fetch(url, {headers:{Accept:"application/json","User-Agent":"ChalupaFF/1.0",...headers},signal:controller.signal});
+  } finally {
+    clearTimeout(timeout);
+  }
   const text = await res.text();
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}: ${text.slice(0,200)}`);
   return text ? JSON.parse(text) : null;
