@@ -46,8 +46,8 @@ jobs:
             curl --fail --silent --show-error --location --max-time 30 "https://api.sleeper.app/v1/players/nfl" -o .cache/sleeper-players.json
           fi
           node scripts/fetch-live-data.mjs
-        timeout-minutes: 3
           rm -rf .cache
+        timeout-minutes: 3
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
