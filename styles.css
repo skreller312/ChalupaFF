@@ -102,3 +102,4 @@ h2 { margin-bottom: 2px; font-size: 1.2rem; letter-spacing: -.02em; }
   .refresh-button { padding: 0 11px; }
   .league-top { padding-left: 12px; padding-right: 12px; }
 }
+.data-status{display:inline-flex;align-items:center;gap:7px}.data-status i{width:8px;height:8px;display:inline-block;border-radius:50%;background:var(--green);flex:0 0 auto}.data-status-checking i{background:var(--yellow);animation:data-pulse 1s ease-in-out infinite}.data-status-waiting i{background:var(--yellow)}.data-status-updated i{background:var(--green)}.data-status-warning i{background:var(--yellow)}.data-status-error i{background:var(--red)}@keyframes data-pulse{50%{opacity:.35;transform:scale(.7)}}
