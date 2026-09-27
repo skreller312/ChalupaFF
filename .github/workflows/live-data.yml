@@ -14,12 +14,12 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -47,7 +47,7 @@ jobs:
           fi
           node scripts/fetch-live-data.mjs
           rm -rf .cache
-        timeout-minutes: 3
+        timeout-minutes: 5
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
