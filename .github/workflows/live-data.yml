@@ -69,3 +69,5 @@ jobs:
         run: |
           sleep 10
           gh workflow run live-data.yml --repo "${{ github.repository }}" --ref main
+
+# ChalupaFF reset 2026-10-02
