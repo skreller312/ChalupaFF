@@ -4,7 +4,7 @@ on:
   push:
     branches: ["main"]
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -58,13 +58,5 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
-
-      - name: Start next refresh
-        if: ${{ always() }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          sleep 10
-          gh workflow run live-data.yml --repo "${{ github.repository }}" --ref main
 
 # ChalupaFF manual restart 2026-10-04T17:16:44.288Z
