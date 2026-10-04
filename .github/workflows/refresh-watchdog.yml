@@ -1,0 +1,28 @@
+name: Refresh watchdog
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Check for an active refresh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          RUNS=$(gh api "repos/${{ github.repository }}/actions/runs?event=workflow_dispatch&per_page=10" --jq '[.workflow_runs[] | select(.name == "Refresh live fantasy data") | select(.status == "in_progress" or .status == "queued" or .status == "pending")] | length')
+          if [ "$RUNS" -eq 0 ]; then
+            echo "No active live-data refresh found; starting one."
+            gh workflow run live-data.yml --repo "${{ github.repository }}" --ref main
+          else
+            echo "Live-data refresh is already active."
+          fi
