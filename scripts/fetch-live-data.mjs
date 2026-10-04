@@ -238,8 +238,27 @@ async function fetchEspn(l){
   };
 }
 
+async function resolveFantasyWeek(state,scheduleRaw){
+  let week=Number(state?.week||1);
+  const schedule=Array.isArray(scheduleRaw)?scheduleRaw:[];
+  const now=new Date();
+  const chicagoDay=new Intl.DateTimeFormat("en-US",{timeZone:"America/Chicago",weekday:"short"}).format(now);
+  const chicagoDate=new Intl.DateTimeFormat("en-US",{timeZone:"America/Chicago",year:"numeric",month:"2-digit",day:"2-digit"}).format(now);
+  const parseDate=g=>g?.date?new Date(g.date):null;
+  const weeks=[...new Set(schedule.map(g=>Number(g?.week)).filter(Number.isFinite))].sort((a,b)=>a-b);
+  const nextWeek=weeks.find(w=>w>week);
+  if(chicagoDay==="Wed"&&nextWeek){
+    const firstNextGame=schedule.filter(g=>Number(g?.week)===nextWeek).map(parseDate).filter(d=>d&&!Number.isNaN(d.getTime())).sort((a,b)=>a-b)[0];
+    if(firstNextGame){
+      const ymd=chicagoDate.replace(/[^0-9]/g,"");
+      const firstYmd=new Intl.DateTimeFormat("en-US",{timeZone:"America/Chicago",year:"numeric",month:"2-digit",day:"2-digit"}).format(firstNextGame).replace(/[^0-9]/g,"");
+      if(ymd>=firstYmd) week=nextWeek;
+    }
+  }
+  return week;
+}
 async function main(){
-  const now=new Date().toISOString(), state=await optional(`${SLEEPER}/state/nfl`), week=Number(state?.week||3);
+  const now=new Date().toISOString(), state=await optional(`${SLEEPER}/state/nfl`), scheduleForWeek=await optional(`https://api.sleeper.com/schedule/nfl/regular/${CONFIG.season}`), week=await resolveFantasyWeek(state,scheduleForWeek);
   let players={};
   try { players=JSON.parse(await fs.readFile(".cache/sleeper-players.json","utf8")); } catch { players=await optional(`${SLEEPER}/players/nfl`)||{}; }
   const leagues=[],errors=[];
