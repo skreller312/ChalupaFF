@@ -13,9 +13,6 @@ permissions:
   id-token: write
   actions: write
 
-concurrency:
-  group: pages
-  cancel-in-progress: false
 
 jobs:
   build-and-deploy:
