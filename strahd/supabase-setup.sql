@@ -70,6 +70,8 @@ begin
   return jsonb_build_object('success', true, 'participants', 6);
 end; $$;
 
+drop function if exists public.reveal_assignment(text);
+
 create or replace function public.reveal_assignment(p_character text, p_access_code text)
 returns table(recipient text, event_title text)
 language plpgsql security definer set search_path = public, extensions as $$
