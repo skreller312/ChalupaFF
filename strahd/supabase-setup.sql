@@ -1,10 +1,10 @@
 -- The Black Ball: Supabase setup
 -- Run this entire script in Supabase Dashboard > SQL Editor.
--- Before running: replace SET_A_LONG_RANDOM_HOST_CODE with a private host code.
+-- Before running: replace SET_A_LONG_RANDOM_HOST_CODE with the host password in your local copy only; do not commit the edited SQL file because this repository is public.
 create table if not exists public.black_ball_settings (
   id boolean primary key default true check (id = true),
   host_code text not null,
-  event_title text not null default 'The Black Ball',
+  event_title text not null default 'Strahdsmas',
   updated_at timestamptz not null default now()
 );
 insert into public.black_ball_settings (id, host_code)
@@ -27,7 +27,7 @@ alter table public.black_ball_assignments enable row level security;
 revoke all on public.black_ball_settings from anon, authenticated;
 revoke all on public.black_ball_assignments from anon, authenticated;
 
-create or replace function public.publish_draw(p_host_code text, p_assignments jsonb, p_event_title text default 'The Black Ball')
+create or replace function public.publish_draw(p_host_code text, p_assignments jsonb, p_event_title text default 'Strahdsmas')
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare
   expected text;
