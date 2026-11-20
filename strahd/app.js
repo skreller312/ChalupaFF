@@ -1,6 +1,6 @@
 (() => {
-const SUPABASE_URL="https://YOUR-PROJECT.supabase.co";
-const SUPABASE_ANON_KEY="YOUR_SUPABASE_ANON_KEY";
+const SUPABASE_URL="https://doiphqcqtpplllosnwnb.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_9PK-LsqyPseBOqdNS6hQGg_HDzKp7aj";
 const CHARACTERS=["Ashling","Lana","Strahd","Kaedrin","Zillah","Penelope"];
 const EXCLUSIONS=[["Ashling","Lana"],["Kaedrin","Penelope"]];
 const $=id=>document.getElementById(id);
