@@ -9,7 +9,7 @@
 .scene.reveal-in .recipient{opacity:0;animation:recipientReveal 1s 1.15s cubic-bezier(.2,.8,.2,1) both}
 @media(prefers-reduced-motion:reduce){.scene.reveal-in,.scene.reveal-in .scene-art,.scene.reveal-in .scene-text,.scene.reveal-in .recipient{animation:none;opacity:1;transform:none;filter:none}}
 
-.feast-animation{width:min(440px,94%);margin:18px auto 20px;border:1px solid #78504c;padding:5px;background:#120e14;box-shadow:0 10px 34px #0008,0 0 26px #9b596322}
+.feast-animation{width:min(240px,94%);margin:18px auto 20px;border:1px solid #78504c;padding:5px;background:#120e14;box-shadow:0 10px 34px #0008,0 0 26px #9b596322}
 .feast-animation img{display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:cover}
 .pair-kicker{font:10px Cinzel,serif;letter-spacing:.16em;color:var(--gold);text-transform:uppercase;margin:12px 0 0}
 .pair-kicker strong{color:var(--gold2)}
