@@ -12,14 +12,17 @@ The six participants are Ashling, Lana, Strahd, Kaedrin, Zillah, and Penelope. E
 4. Put those values in `app.js` as `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
 5. Commit/push the `strahd/` folder to the repository's `main` branch. With GitHub Pages enabled for the repository, visit `https://skreller312.github.io/ChalupaFF/strahd/`.
 
+## Participant password setup
+After running the base setup script, create one password hash per participant in Supabase SQL Editor. Do not put these passwords in GitHub or browser code. Use the private SQL seed statement supplied by the organizer to populate `public.black_ball_access_codes`. Passwords are stored as bcrypt hashes; the browser submits the selected character and entered password to the `reveal_assignment` RPC. Direct table access is revoked for anonymous and authenticated clients.
+
 ## How it works
 - The host opens “For the Master of the Black Ball”, enters the host code, and casts the draw. Publishing replaces the previous active draw.
-- Each participant selects their character and clicks “Discover My Fate”.
+- Each participant selects their character, enters their unique private character password, and clicks “Discover My Fate”.
 - Supabase returns only that participant's recipient; the browser plays a recipient-specific scene with the participant's name woven into it.
 - The complete assignment table is not directly readable by anonymous clients. Publishing requires the host code.
 
 ## Important privacy note
-This version lets visitors enter a character name without an account. It prevents browsing the assignments table, but a visitor could enter another participant's known name and reveal that assignment. If you want stronger secrecy, add a unique PIN per participant or an authenticated login. This is a casual name-entry flow, not identity verification.
+The site uses unique per-character passwords, stored as bcrypt hashes in Supabase. This prevents casual visitors from selecting every character and revealing all assignments. It cannot prevent a participant from sharing their password or screenshot. Use a unique password per participant and distribute each one privately.
 
 ## Notes
 - The scenes are authored in `app.js` and can be edited independently of the draw logic.
