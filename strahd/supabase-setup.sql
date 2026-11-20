@@ -1,4 +1,4 @@
--- The Black Ball: Supabase setup
+-- Strahdsmas: Supabase setup
 -- Run this entire script in Supabase Dashboard > SQL Editor.
 -- Before running: replace SET_A_LONG_RANDOM_HOST_CODE with the host password in your local copy only; do not commit the edited SQL file because this repository is public.
 create table if not exists public.black_ball_settings (
@@ -49,7 +49,7 @@ begin
   delete from public.black_ball_assignments;
   insert into public.black_ball_assignments(giver, recipient)
   select x.giver, x.recipient from jsonb_to_recordset(p_assignments) as x(giver text, recipient text);
-  update public.black_ball_settings set event_title = coalesce(nullif(trim(p_event_title),''),'The Black Ball'), updated_at = now() where id = true;
+  update public.black_ball_settings set event_title = coalesce(nullif(trim(p_event_title),''),'Strahdsmas'), updated_at = now() where id = true;
   return jsonb_build_object('success', true, 'participants', 6);
 end; $$;
 
