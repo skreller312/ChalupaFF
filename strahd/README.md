@@ -1,4 +1,4 @@
-# The Black Ball — Barovian Gift Exchange
+# Strahdsmas — Barovian Gift Exchange
 
 A Curse of Strahd-themed shared Secret Santa experience, hosted under `/strahd/` in ChalupaFF.
 
@@ -7,7 +7,7 @@ The six participants are Ashling, Lana, Strahd, Kaedrin, Zillah, and Penelope. E
 
 ## Deployment
 1. Create a free Supabase project.
-2. Open Supabase SQL Editor. In `supabase-setup.sql`, replace `SET_A_LONG_RANDOM_HOST_CODE` with a strong private code, then run the script.
+2. Open Supabase SQL Editor. In `supabase-setup.sql`, replace `SET_A_LONG_RANDOM_HOST_CODE` with your host password in a local copy, then run the script in Supabase. Do not commit that edited SQL file: this repository is public. Prefer a longer, unique password than a memorable phrase.
 3. In Supabase Project Settings > API, copy the Project URL and anon/public key.
 4. Put those values in `app.js` as `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
 5. Commit/push the `strahd/` folder to the repository's `main` branch. With GitHub Pages enabled for the repository, visit `https://skreller312.github.io/ChalupaFF/strahd/`.
