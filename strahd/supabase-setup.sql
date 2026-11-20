@@ -46,6 +46,14 @@ begin
   if row_count <> 6 or distinct_givers <> 6 or distinct_recipients <> 6 then
     raise exception 'A complete one-to-one assignment for all six characters is required';
   end if;
+  if exists (
+    select 1
+    from jsonb_to_recordset(p_assignments) as x(giver text, recipient text)
+    join jsonb_to_recordset(p_assignments) as y(giver text, recipient text)
+      on x.giver = y.recipient and x.recipient = y.giver
+  ) then
+    raise exception 'Reciprocal assignments are not allowed';
+  end if;
   delete from public.black_ball_assignments where true;
   insert into public.black_ball_assignments(giver, recipient)
   select x.giver, x.recipient from jsonb_to_recordset(p_assignments) as x(giver text, recipient text);
