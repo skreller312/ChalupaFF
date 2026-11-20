@@ -46,7 +46,7 @@ begin
   if row_count <> 6 or distinct_givers <> 6 or distinct_recipients <> 6 then
     raise exception 'A complete one-to-one assignment for all six characters is required';
   end if;
-  delete from public.black_ball_assignments;
+  delete from public.black_ball_assignments where true;
   insert into public.black_ball_assignments(giver, recipient)
   select x.giver, x.recipient from jsonb_to_recordset(p_assignments) as x(giver text, recipient text);
   update public.black_ball_settings set event_title = coalesce(nullif(trim(p_event_title),''),'Strahdsmas'), updated_at = now() where id = true;
