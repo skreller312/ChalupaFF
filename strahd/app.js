@@ -20,7 +20,7 @@ const normalize=s=>s.trim().toLocaleLowerCase();
 const pairScenes={
 Ashling:{
 Strahd:`The chapel is quiet except for the rain against its stained glass. Ashling remembers the Count's smirk from the balcony; tonight, Strahd steps down from it and offers a sealed parcel. “You have looked upon my house and survived. Let us see whether you can survive choosing a gift for its master.”`,
-Kaedrin:`A raven lands on the chapel rail, where Ashling once caught Strahling's silhouette watching from above. Kaedrin arrives with the same wary look he wore after hearing Strahd's bargain: “I scratch your back.” Ashling finds a card tucked beneath the bird's foot. “A debt is not a gift,” Kaedrin says. “But perhaps this one can be.”`,
+Kaedrin:`A raven lands on the chapel rail, where Ashling once caught Strahd's silhouette watching from above. Kaedrin arrives with the same wary look he wore after hearing Strahd's bargain: “I scratch your back.” Ashling finds a card tucked beneath the bird's foot. “A debt is not a gift,” Kaedrin says. “But perhaps this one can be.”`,
 Zillah:`The chapel candles gutter. Ashling's vision of herself, burned and still in charred druidic garb, flickers across the dark window—then vanishes. Zillah stands beside the altar, holding a small parcel. “Not every omen has to end in ash,” Zillah says. The ribbon bears a name.`,
 Penelope:`The chapel doors creak open. Ashling catches a glimpse of Volenta's wild expression in the polished stone, the instant before Penelope was nearly struck down. Penelope steps from the shadow unharmed, carrying a little black box. “I prefer to give my surprises before anyone can stab me with them.”`
 },
