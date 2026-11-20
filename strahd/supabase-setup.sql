@@ -1,4 +1,6 @@
 -- Strahdsmas: Supabase setup
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;
 -- Run this entire script in Supabase Dashboard > SQL Editor.
 -- Before running: replace SET_A_LONG_RANDOM_HOST_CODE with the host password in your local copy only; do not commit the edited SQL file because this repository is public.
 create table if not exists public.black_ball_settings (
@@ -22,10 +24,17 @@ create table if not exists public.black_ball_assignments (
   constraint kaedrin_penelope_exclusion check (not (giver='Kaedrin' and recipient='Penelope') and not (giver='Penelope' and recipient='Kaedrin'))
 );
 alter table public.black_ball_settings enable row level security;
+create table if not exists public.black_ball_access_codes (
+  participant text primary key check (participant in ('Ashling','Lana','Strahd','Kaedrin','Zillah','Penelope')),
+  password_hash text not null,
+  updated_at timestamptz not null default now()
+);
+alter table public.black_ball_access_codes enable row level security;
 alter table public.black_ball_assignments enable row level security;
 -- No direct table reads/writes for anonymous visitors. Only the narrowly scoped RPCs below.
 revoke all on public.black_ball_settings from anon, authenticated;
 revoke all on public.black_ball_assignments from anon, authenticated;
+revoke all on public.black_ball_access_codes from anon, authenticated;
 
 create or replace function public.publish_draw(p_host_code text, p_assignments jsonb, p_event_title text default 'Strahdsmas')
 returns jsonb language plpgsql security definer set search_path = public as $$
@@ -61,17 +70,32 @@ begin
   return jsonb_build_object('success', true, 'participants', 6);
 end; $$;
 
-create or replace function public.reveal_assignment(p_character text)
+create or replace function public.reveal_assignment(p_character text, p_access_code text)
 returns table(recipient text, event_title text)
-language sql security definer set search_path = public as $$
+language plpgsql security definer set search_path = public, extensions as $$
+declare
+  stored_hash text;
+  selected_character text;
+begin
+  selected_character := initcap(trim(p_character));
+  select c.password_hash into stored_hash
+  from public.black_ball_access_codes c
+  where c.participant = selected_character;
+
+  if stored_hash is null or p_access_code is null
+     or extensions.crypt(p_access_code, stored_hash) <> stored_hash then
+    raise exception 'Invalid character password';
+  end if;
+
+  return query
   select a.recipient, s.event_title
   from public.black_ball_assignments a
   cross join public.black_ball_settings s
-  where s.id = true and lower(a.giver) = lower(trim(p_character))
+  where s.id = true and a.giver = selected_character
   limit 1;
-$$;
+end; $$;
 
 revoke all on function public.publish_draw(text,jsonb,text) from public;
-revoke all on function public.reveal_assignment(text) from public;
+revoke all on function public.reveal_assignment(text,text) from public;
 grant execute on function public.publish_draw(text,jsonb,text) to anon, authenticated;
-grant execute on function public.reveal_assignment(text) to anon, authenticated;
+grant execute on function public.reveal_assignment(text,text) to anon, authenticated;
